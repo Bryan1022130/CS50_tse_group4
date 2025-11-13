@@ -12,6 +12,11 @@
 #include "../libcs50/webpage.h" 
 #include "../libcs50/hashtable.h"
 #include "../libcs50/bag.h"
+#include "bag.h"
+#include "hashtable.h"
+#include "set.h"
+
+static const char* format = "http://cs50tse.cs.dartmouth.edu/tse/";
 
 // structs to be utilized 
 //      - bag of pages that need to be crawled
@@ -23,9 +28,6 @@ static void pargeArgs(const int argc, char* argv[], char** seedURL, char** pageD
 static void crawl(char* seedURL, char* pageDirectory, const int maxDepth);
 static void pageScan(webpage_t* page, bag_t* pagesToCrawl, hashtable_t* pagesSeen);
 
-//GLOBAL VARS
-const char* INTERNAL_URL = "http://cs50tse.cs.dartmouth.edu/tse/";
-
 
 /*
 * Main function
@@ -35,7 +37,6 @@ const char* INTERNAL_URL = "http://cs50tse.cs.dartmouth.edu/tse/";
 *   Else, return error.
 */
 int main(const char argc, const char* argv[]) {
-
     // all parameters required 
     if (argc != 4) {
         
@@ -62,6 +63,47 @@ static void parseArgs(const int argc, char* argv[],
     // for pageDirectory, call pagedir_init()
     // maxDepth, ensure it is an integer in specified range
     // if trouble, print to stderr and exit non-zero
+    if(argv[1]!=NULL){
+        seedURL = argv[1];
+    }
+    else{
+        fprintf(stderr,"seedUrl is null");
+        return 1;
+    }
+
+    if(argv[2]!=NULL){
+        pageDirectory = argv[2];
+    }
+    else{
+        fprintf(stderr,"pageDirectory is null");
+        return 1;
+    }
+
+    if(argv[3]!=NULL){
+        maxDepth = argv[3];
+    }
+    else{
+        fprintf(stderr,"maxdepth is null");
+        return 1;
+    }
+
+    normalizeURL(seedURL); //normalize the url
+    bool flag = true;
+    for(int i = 0; i<strleng(format); i++){
+        if(seedURL[i]!=format[i]){ //checks to make sure that it matches the internal url format
+            flag = false;
+        }
+    }
+    if(flag = false){
+        fprintf(stderr,"not an internal url");
+        return 1;
+    }
+
+    pageDirectory = pagedir_init(); //for page directory, calls pagedir_init
+    if(maxDepth<=0||maxDepth>10){ //checks to make sure that the max depth is in the acceptable range
+        fprintf(stderr,"depth not in range");
+        return 1;
+    }
 }
 
 /*
@@ -81,6 +123,24 @@ static void crawl(char* seedURL, char* pageDirectory, const int maxDepth) {
 // 	   delete that webpage
 //     delete the hashtable
 //     delete the bag
+
+    // set_t* toput = set_new();
+    // set_insert(toput, seedURL, 0);
+
+    hashtable_t* urls = hashtable_new(200);
+    hashtable_insert(urls, seedURL, 0);
+
+    bag_t* page = bag_new();
+    // bag_t* page = malloc(100*sizeof(bag_t*)); //change the size later
+    bag_insert(page,seedURL);
+
+    while(page!=NULL){
+        webpage_fetch(page);
+        
+    }
+
+
+
 }
 
 /*
