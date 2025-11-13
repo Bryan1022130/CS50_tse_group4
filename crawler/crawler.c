@@ -23,6 +23,9 @@ static void pargeArgs(const int argc, char* argv[], char** seedURL, char** pageD
 static void crawl(char* seedURL, char* pageDirectory, const int maxDepth);
 static void pageScan(webpage_t* page, bag_t* pagesToCrawl, hashtable_t* pagesSeen);
 
+//GLOBAL VARS
+const char* INTERNAL_URL = "http://cs50tse.cs.dartmouth.edu/tse/";
+
 
 /*
 * Main function
@@ -69,26 +72,64 @@ static void crawl(char* seedURL, char* pageDirectory, const int maxDepth) {
 //     initialize the hashtable and add the seedURL
 //     initialize the bag and add a webpage representing the seedURL at depth 0
 //     while bag is not empty
-// 	   pull a webpage from the bag
-// 	   fetch the HTML for that webpage
-// 	   if fetch was successful,
-// 		   save the webpage to pageDirectory
-// 	       if the webpage is not at maxDepth,
-// 		       	pageScan that HTML
+// 	        pull a webpage from the bag
+// 	        fetch the HTML for that webpage
+// 	        if fetch was successful,
+// 		        save the webpage to pageDirectory
+// 	            if the webpage is not at maxDepth,
+// 		            	pageScan that HTML
 // 	   delete that webpage
 //     delete the hashtable
 //     delete the bag
 }
 
 /*
-* insert description of pageScan
+* Scans each webpage passed from crawl() for URLs embedded in the page. 
+* If an embedded URL is internal, add it to pagesSeen HT
+* create a webpage for it, and add it to pagesToCrawl
 */
 static void pageScan(webpage_t* page, bag_t* pagesToCrawl, hashtable_t* pagesSeen) {
-    // while there is another URL in the page
-	// if that URL is Internal,
-	// 	insert the webpage into the hashtable
-	// 	if that succeeded,
-	// 		create a webpage_t for it
-	// 		insert the webpage into the bag
-	// free the URL
+
+    // Defensive checks 
+    if (page == NULL || pagesToCrawl == NULL || pagesSeen == NULL ) {
+        fprintf(stderr, "pageScan: one or more parameters is NULL. Ignoring.");
+        return;
+    }
+
+    // Assuming all pages from crawler are internal, but
+    // extra defensive check
+    if (strcmp(webpage_getURL(page), INTERNAL_URL) != 0) {
+        fprintf(stderr, "pageScan: page passed to function is not internal. Ignoring.");
+        return;
+    }
+
+    int zero = 0;
+    int* pos = &zero;
+    // I am assuming that memory is allocated in webpage_getNextURL, so I am just defining
+    // url here, and freeing inside of the while loop.
+    // May have to manually allocate memory for url later if ecountering errors. 
+    char* url;
+
+    // while there are URLs on page 
+    while (( url = webpage_getNextURL(page, pos)) != NULL ) {
+
+        url = normalizeURL(url);
+
+        // if internal URL
+        if (strcmp(url, INTERNAL_URL) == 0) {
+             // if successfully added into hashtable
+            if (hashtable_insert(pagesSeen, url, NULL) == true) {  
+                //create wepage for URL
+                webpage_t* new_page = webpage_new(url, (webpage_getDepth(page)+1), NULL);
+                
+                //add to bag
+                bag_insert(pagesToCrawl, new_page);
+            }
+        }
+
+        //free current url
+        free(url);
+    }
 }
+
+    
