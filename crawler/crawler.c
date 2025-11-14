@@ -29,8 +29,6 @@ static void pargeArgs(const int argc, char* argv[], char** seedURL, char** pageD
 static void crawl(char* seedURL, char* pageDirectory, const int maxDepth);
 static void pageScan(webpage_t* page, bag_t* pagesToCrawl, hashtable_t* pagesSeen);
 
-void itemdelete(void* item);
-void namedelete(void* item);
 /*
 * Main function
 *   If proper amount of args, call
@@ -139,23 +137,11 @@ static void crawl(char* seedURL, char* pageDirectory, const int maxDepth) {
             }
             webpage_delete(ret);//the page at that index
     }
-    hashtable_delete(urls,itemdelete);
-    bag_delete(pages,pages);
+    hashtable_delete(urls,NULL);
+    bag_delete(pages, webpage_delete);
 
 
 
-}
-//deleting helper for hastables
-void itemdelete(void* item){
-    if(item!=NULL){
-        free(item); 
-    }
-}
-//deleting helper for bags
-void namedelete(void* item){
-  if (item != NULL) {
-    free(item);
-  }
 }
 
 
