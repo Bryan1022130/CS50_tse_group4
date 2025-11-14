@@ -8,6 +8,7 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "../libcs50/webpage.h" 
 #include "../libcs50/hashtable.h"
@@ -16,7 +17,7 @@
 #include "hashtable.h"
 #include "set.h"
 
-static const char* format = "http://cs50tse.cs.dartmouth.edu/tse/";
+static const char* INTERNAL_URL = "http://cs50tse.cs.dartmouth.edu/tse/";
 
 // structs to be utilized 
 //      - bag of pages that need to be crawled
@@ -38,7 +39,7 @@ static void pageScan(webpage_t* page, bag_t* pagesToCrawl, hashtable_t* pagesSee
 */
 int main(const char argc, const char* argv[]) {
     // all parameters required 
-    if (argc != 4) {
+    if (argc == 4) {
         
         // calls parseArgs and crawl
 
@@ -54,17 +55,15 @@ int main(const char argc, const char* argv[]) {
 }
 
 /*
-* insert description of parseArgs
+* It extracts the information from the command line and ensures 
+* that it is part of the internal URL before establishing the page directory
+* and making sure that the max depth is a valid integer between 0 and 10. 
 */
 static void parseArgs(const int argc, char* argv[], 
     char** seedURL, char** pageDirectory, int* maxDepth) {
 
-    // call seedURL normalize the URL and validate internal URL
-    // for pageDirectory, call pagedir_init()
-    // maxDepth, ensure it is an integer in specified range
-    // if trouble, print to stderr and exit non-zero
     if(argv[1]!=NULL){
-        seedURL = argv[1];
+        *seedURL = argv[1];
     }
     else{
         fprintf(stderr,"seedUrl is null");
@@ -72,7 +71,7 @@ static void parseArgs(const int argc, char* argv[],
     }
 
     if(argv[2]!=NULL){
-        pageDirectory = argv[2];
+        *pageDirectory = argv[2];
     }
     else{
         fprintf(stderr,"pageDirectory is null");
@@ -80,26 +79,30 @@ static void parseArgs(const int argc, char* argv[],
     }
 
     if(argv[3]!=NULL){
-        maxDepth = argv[3];
+        *maxDepth = atoi(argv[3]); //convert to int
     }
     else{
         fprintf(stderr,"maxdepth is null");
         return 1;
     }
 
-    normalizeURL(seedURL); //normalize the url
+    normalizeURL(*seedURL); //normalize the url
     bool flag = true;
-    for(int i = 0; i<strleng(format); i++){
-        if(seedURL[i]!=format[i]){ //checks to make sure that it matches the internal url format
+    for(int i = 0; i<strlen(INTERNAL_URL); i++){
+        if((*seedURL)[i]!=INTERNAL_URL[i]){ //checks to make sure that it matches the internal url format
             flag = false;
         }
     }
-    if(flag = false){
+    if(flag == false){
         fprintf(stderr,"not an internal url");
         return 1;
     }
 
-    pageDirectory = pagedir_init(); //for page directory, calls pagedir_init
+    if(!pagedir_init(*pageDirectory)){
+        fprintf(stderr,"Invalid page directory");
+        return 1;
+
+    } 
     if(maxDepth<=0||maxDepth>10){ //checks to make sure that the max depth is in the acceptable range
         fprintf(stderr,"depth not in range");
         return 1;
@@ -107,41 +110,56 @@ static void parseArgs(const int argc, char* argv[],
 }
 
 /*
-* insert description of crawl
+* Starts by looking at the seedURl provided and goes on to look at (crawl)
+* each webpage  after that seed uptill the given max depth and saves the
+* pages in pageDirectory provided. 
 */
 static void crawl(char* seedURL, char* pageDirectory, const int maxDepth) {
 
-//     initialize the hashtable and add the seedURL
-//     initialize the bag and add a webpage representing the seedURL at depth 0
-//     while bag is not empty
-// 	        pull a webpage from the bag
-// 	        fetch the HTML for that webpage
-// 	        if fetch was successful,
-// 		        save the webpage to pageDirectory
-// 	            if the webpage is not at maxDepth,
-// 		            	pageScan that HTML
-// 	   delete that webpage
-//     delete the hashtable
-//     delete the bag
+    hashtable_t* urls = hashtable_new(200); 
+    hashtable_insert(urls, seedURL, NULL); //insert the starterURL assuming no item
 
-    // set_t* toput = set_new();
-    // set_insert(toput, seedURL, 0);
+    bag_t* pages = bag_new();
+    webpage_t* web = webpage_new(seedURL, 0, NULL); //html null rn
+    bag_insert(pages,web);
 
-    hashtable_t* urls = hashtable_new(200);
-    hashtable_insert(urls, seedURL, 0);
-
-    bag_t* page = bag_new();
-    // bag_t* page = malloc(100*sizeof(bag_t*)); //change the size later
-    bag_insert(page,seedURL);
-
-    while(page!=NULL){
-        webpage_fetch(page);
-        
+    int docid = 1;
+    webpage_t* ret;
+    while((ret = bag_extract(pages))!=NULL){
+            if(webpage_fetch(ret)){
+                char* html = webpage_getHTML(ret);
+                printf("Found html: %s\n", html);
+                pagedir_save(ret,pageDirectory, docid++); //save to pageDirectory
+                int depth = webpage_getDepth(ret);
+                if(depth<maxDepth){
+                    pageScan(ret, pages, urls);//it says pagescan that "HTML"?
+                }
+                //free(html);??
+            }
+            webpage_delete(ret);//the page at that index
     }
+    hashtable_delete(urls,itemdelete);
+    bag_delete(pages,pages);
 
 
 
 }
+//deleting helper for hastables
+void itemdelete(void* item){
+    if(item!=NULL){
+        free(item); 
+    }
+}
+//deleting helper for bags
+void namedelete(void* item){
+  if (item != NULL) {
+    free(item);
+  }
+}
+
+
+
+
 
 /*
 * Scans each webpage passed from crawl() for URLs embedded in the page. 
