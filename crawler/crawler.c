@@ -29,7 +29,8 @@ static void pargeArgs(const int argc, char* argv[], char** seedURL, char** pageD
 static void crawl(char* seedURL, char* pageDirectory, const int maxDepth);
 static void pageScan(webpage_t* page, bag_t* pagesToCrawl, hashtable_t* pagesSeen);
 
-
+void itemdelete(void* item);
+void namedelete(void* item);
 /*
 * Main function
 *   If proper amount of args, call
